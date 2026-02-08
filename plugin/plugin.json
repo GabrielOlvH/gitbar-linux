@@ -1,0 +1,14 @@
+{
+    "id": "gitBar",
+    "name": "GitBar",
+    "description": "Git branch and status monitor - shows branch, dirty state, and ahead/behind for the focused terminal",
+    "version": "0.1.0",
+    "author": "gabriel",
+    "type": "widget",
+    "capabilities": ["dankbar-widget", "monitoring"],
+    "component": "./GitBarWidget.qml",
+    "icon": "commit",
+    "settings": "./GitBarSettings.qml",
+    "requires": ["bun", "niri", "git"],
+    "permissions": ["settings_read", "settings_write", "process"]
+}
