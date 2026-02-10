@@ -17,17 +17,20 @@ export interface LastCommit {
 export interface RepoSummary {
   name: string
   path: string
+  group: string
   branch: string
   dirty: boolean
   ahead: number
   behind: number
   last_commit_ago: string
+  remote_url: string
 }
 
 export interface GitBarOutput {
   status?: GitStatus
   project_name?: string
   project_path?: string
+  remote_url?: string
   last_commit?: LastCommit
   repos?: RepoSummary[]
   error?: string

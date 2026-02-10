@@ -1,5 +1,5 @@
 import { detectFocusedRepo } from "./detect"
-import { getGitStatus, getLastCommit, scanRepos } from "./git"
+import { getGitStatus, getLastCommit, getRemoteUrl, scanRepos } from "./git"
 import type { GitBarOutput } from "./types"
 
 function parseArgs() {
@@ -28,15 +28,17 @@ async function main() {
     return
   }
 
-  const [status, lastCommit] = await Promise.all([
+  const [status, lastCommit, remoteUrl] = await Promise.all([
     getGitStatus(detected.repoRoot),
     getLastCommit(detected.repoRoot),
+    getRemoteUrl(detected.repoRoot),
   ])
 
   const output: GitBarOutput = {
     status,
     project_name: detected.projectName,
     project_path: detected.repoRoot,
+    remote_url: remoteUrl ?? undefined,
     last_commit: lastCommit ?? undefined,
     timestamp: new Date().toISOString(),
   }

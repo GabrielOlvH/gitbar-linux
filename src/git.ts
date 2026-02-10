@@ -1,6 +1,6 @@
 import { readdir } from "fs/promises"
 import { existsSync } from "fs"
-import { join, basename } from "path"
+import { join, basename, relative, dirname } from "path"
 import type { GitStatus, LastCommit, RepoSummary } from "./types"
 
 async function run(args: string[], cwd: string): Promise<string> {
@@ -46,6 +46,19 @@ export async function getGitStatus(repoRoot: string): Promise<GitStatus> {
   }
 }
 
+export async function getRemoteUrl(repoRoot: string): Promise<string | null> {
+  try {
+    const url = await run(["git", "remote", "get-url", "origin"], repoRoot)
+    if (!url) return null
+    // Convert SSH URLs to HTTPS: git@github.com:user/repo.git → https://github.com/user/repo
+    const sshMatch = url.match(/^git@([^:]+):(.+?)(?:\.git)?$/)
+    if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}`
+    return url.replace(/\.git$/, "")
+  } catch {
+    return null
+  }
+}
+
 export async function getLastCommit(repoRoot: string): Promise<LastCommit | null> {
   try {
     const raw = await run(["git", "log", "-1", "--format=%H%n%s%n%cr"], repoRoot)
@@ -83,23 +96,28 @@ export async function scanRepos(projectsDir: string): Promise<RepoSummary[]> {
   const repoPaths = await findGitRepos(projectsDir)
   const results = await Promise.allSettled(
     repoPaths.map(async (repoPath): Promise<RepoSummary> => {
-      const [status, commitRaw] = await Promise.all([
+      const [status, commitRaw, remoteUrl] = await Promise.all([
         getGitStatus(repoPath),
         run(["git", "log", "-1", "--format=%cr"], repoPath).catch(() => ""),
+        getRemoteUrl(repoPath),
       ])
+      const rel = relative(projectsDir, repoPath)
+      const parent = dirname(rel)
       return {
         name: basename(repoPath),
         path: repoPath,
+        group: parent === "." ? "" : parent,
         branch: status.branch,
         dirty: status.dirty,
         ahead: status.ahead,
         behind: status.behind,
         last_commit_ago: commitRaw,
+        remote_url: remoteUrl || "",
       }
     }),
   )
   return results
     .filter((r): r is PromiseFulfilledResult<RepoSummary> => r.status === "fulfilled")
     .map((r) => r.value)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name))
 }
